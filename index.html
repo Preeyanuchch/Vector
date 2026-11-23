@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>การดำเนินการเวกเตอร์ | Vector Operations</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+:root {
+  --surface-2: #ffffff;
+  --surface-1: #f7f7f7;
+  --bg-neutral: #f1f1f1;
+  --border: rgba(0,0,0,0.09);
+  --border-strong: rgba(0,0,0,0.16);
+  --text-primary: #0d0d0d;
+  --text-secondary: rgba(0,0,0,0.58);
+  --text-muted: rgba(0,0,0,0.42);
+  --fill-primary: #070157;
+  --on-primary: #ffffff;
+  --radius: 8px;
+  --cU: #070157;
+  --cV: #FFC007;
+  --cR: #cc0000;
+}
+* { box-sizing: border-box; font-family: 'Prompt', sans-serif; margin: 0; padding: 0; }
+html { height: 100%; }
+body { background: #ffffff; color: var(--text-primary); height: 100%; padding: 1.5rem 1rem; display: flex; flex-direction: column; }
+.page-title { font-size: 22px; font-weight: 500; margin-bottom: 4px; color: var(--cU); }
+.page-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 1.25rem; }
+.row { display: flex; gap: 14px; align-items: stretch; flex: 1; }
+.sidebar { width: 268px; flex-shrink: 0; transition: width .2s, opacity .2s; }
+.sidebar.collapsed { width: 0; opacity: 0; overflow: hidden; pointer-events: none; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: 12px; }
+.card.stretch { flex: 1; display: flex; flex-direction: column; }
+.cv-wrap { flex: 1; position: relative; min-height: 0; }
+.fl2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+label.lbl { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+input[type=number] {
+  width: 100%; padding: 6px 8px; font-size: 14px; font-family: 'Prompt', sans-serif;
+  background: var(--surface-1); border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius); color: var(--text-primary); outline: none;
+}
+input[type=number]:focus { border-color: var(--cU); }
+input[type=range] { width: 100%; accent-color: var(--cU); }
+.ob {
+  padding: 5px 12px; font-size: 13px; border-radius: var(--radius);
+  border: 0.5px solid var(--border-strong); background: var(--surface-1);
+  color: var(--text-primary); cursor: pointer; font-family: 'Prompt', sans-serif;
+  transition: background .12s;
+}
+.ob:hover { background: var(--bg-neutral); }
+.ob.on { background: var(--fill-primary); color: var(--on-primary); border-color: var(--fill-primary); }
+.ops { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
+.lgd { display: flex; gap: 8px; margin-bottom: 8px; font-size: 13px; align-items: center; flex-wrap: wrap; }
+.vis-btn { display: flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: var(--radius); border: 0.5px solid var(--border-strong); background: var(--surface-1); color: var(--text-secondary); cursor: pointer; font-family: 'Prompt', sans-serif; font-size: 13px; transition: opacity .15s, background .15s; }
+.vis-btn.active { background: var(--bg-neutral); color: var(--text-primary); }
+.vis-btn:not(.active) { opacity: 0.4; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; flex-shrink: 0; }
+
+canvas#cv { border-radius: 8px; border: 0.5px solid var(--border); display: block; width: 100%; height: 100%; cursor: grab; background: #fff; min-height: 300px; }
+canvas#cv.panning { cursor: grabbing; }
+.cv-toolbar { position: absolute; top: 7px; right: 7px; display: flex; gap: 5px; z-index: 2; }
+.cv-toolbar button {
+  width: 32px; height: 32px; border-radius: var(--radius);
+  border: 0.5px solid var(--border-strong); background: rgba(255,255,255,0.92);
+  color: var(--cU); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; transition: background .12s;
+}
+.cv-toolbar button:hover { background: #eeedf8; }
+.sidebar-title { font-size: 14px; font-weight: 500; color: var(--text-secondary); margin: 0 0 11px; }
+.stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-top: 11px; }
+.stat { background: var(--bg-neutral); border-radius: var(--radius); padding: 7px 8px; text-align: center; }
+.sl { font-size: 12px; color: var(--text-muted); display: block; }
+.sv { font-size: 17px; font-weight: 500; color: var(--cU); }
+.res {
+  background: #f5f4ff; border: 0.5px solid rgba(7,1,87,0.12);
+  border-radius: var(--radius); padding: 10px 13px; margin-top: 10px;
+  font-size: 13px; color: var(--text-secondary); min-height: 46px; line-height: 1.75;
+}
+.res strong { color: var(--cU); }
+.graph-head { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .row { flex-direction: column; }
+  .sidebar { width: 100% !important; }
+  .sidebar.collapsed { width: 100% !important; height: 0; opacity: 0; overflow: hidden; }
+}
+</style>
+</head>
+<body>
+<p class="page-title">การดำเนินการเวกเตอร์</p>
+<p class="page-sub">ปรับค่าเวกเตอร์และสำรวจผลลัพธ์บนกราฟ</p>
+
+<div class="row">
+  <div class="sidebar collapsed" id="sidebar">
+    <div class="card">
+      <p class="sidebar-title">กำหนดเวกเตอร์</p>
+      <div style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:#070157;margin-bottom:6px">เวกเตอร์ u</div>
+        <div class="fl2">
+          <div><label class="lbl">u<sub>x</sub></label><input type="number" id="ux" value="3" step="0.5" oninput="draw()"></div>
+          <div><label class="lbl">u<sub>y</sub></label><input type="number" id="uy" value="2" step="0.5" oninput="draw()"></div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:#9a7000;margin-bottom:6px">เวกเตอร์ v</div>
+        <div class="fl2">
+          <div><label class="lbl">v<sub>x</sub></label><input type="number" id="vx" value="1" step="0.5" oninput="draw()"></div>
+          <div><label class="lbl">v<sub>y</sub></label><input type="number" id="vy" value="3" step="0.5" oninput="draw()"></div>
+        </div>
+      </div>
+      <div>
+        <label class="lbl">สเกลาร์ k = <span id="kv">2</span></label>
+        <input type="range" id="k" min="-5" max="5" value="2" step="0.5" oninput="document.getElementById('kv').textContent=this.value;draw()">
+      </div>
+      <div class="stat-row">
+        <div class="stat"><span class="sl">‖u‖</span><span class="sv" id="mu">–</span></div>
+        <div class="stat"><span class="sl">‖v‖</span><span class="sv" id="mv">–</span></div>
+        <div class="stat"><span class="sl">θ</span><span class="sv" id="ang">–</span></div>
+      </div>
+      <button class="ob" style="width:100%;margin-top:10px" onclick="resetVals()">คืนค่าเริ่มต้น</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card stretch">
+      <div class="graph-head">
+        <button class="ob" onclick="toggleSidebar()">
+          <i id="toggleicon" class="ti ti-menu-2"></i>
+          <span id="togglelabel">ขยายพาเนล</span>
+        </button>
+        <div class="ops" style="margin-bottom:0;flex:1">
+          <button class="ob on" onclick="setOp('add',this)">u + v</button>
+          <button class="ob" onclick="setOp('sub',this)">u − v</button>
+          <button class="ob" onclick="setOp('scale',this)">k · u</button>
+          <button class="ob" onclick="setOp('dot',this)">Dot</button>
+          <button class="ob" onclick="setOp('cross',this)">Cross</button>
+          <button class="ob" onclick="setOp('proj',this)">Proj</button>
+        </div>
+      </div>
+      <div class="lgd">
+        <button class="vis-btn active" id="btn-u" onclick="toggleVis('u')" style="--dot-bg:#070157">
+          <span class="dot" style="background:#070157"></span>u
+        </button>
+        <button class="vis-btn active" id="btn-v" onclick="toggleVis('v')" style="--dot-bg:#FFC007;--dot-border:1px solid #cca800">
+          <span class="dot" style="background:#FFC007;border:1px solid #cca800"></span>v
+        </button>
+        <button class="vis-btn active" id="btn-r" onclick="toggleVis('r')">
+          <span class="dot" style="background:#cc0000"></span>ผลลัพธ์
+        </button>
+      </div>
+      <div class="cv-wrap">
+        <canvas id="cv"></canvas>
+        <div class="cv-toolbar">
+          <button onclick="zoomIn()" title="ซูมเข้า"><i class="ti ti-zoom-in"></i></button>
+          <button onclick="zoomOut()" title="ซูมออก"><i class="ti ti-zoom-out"></i></button>
+          <button onclick="resetView()" title="รีเซ็ตมุมมอง"><i class="ti ti-focus-centered"></i></button>
+        </div>
+      </div>
+      <div class="res" id="res">กำลังโหลด...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cU='#070157', cV='#FFC007', cVstroke='#b38a00', cR='#cc0000';
+let op='add', panX=0, panY=0, userScale=1;
+let isDragging=false, lastMX=0, lastMY=0;
+let showU=true, showV=true, showR=true;
+
+function toggleVis(which){
+  if(which==='u'){ showU=!showU; document.getElementById('btn-u').classList.toggle('active',showU); }
+  if(which==='v'){ showV=!showV; document.getElementById('btn-v').classList.toggle('active',showV); }
+  if(which==='r'){ showR=!showR; document.getElementById('btn-r').classList.toggle('active',showR); }
+  draw();
+}
+
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const c=s.classList.toggle('collapsed');
+  document.getElementById('toggleicon').className=c?'ti ti-menu-2':'ti ti-x';
+  document.getElementById('togglelabel').textContent=c?'ขยายพาเนล':'ย่อพาเนล';
+  setTimeout(draw,220);
+}
+function setOp(o,btn){
+  op=o;
+  document.querySelectorAll('.ob').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  draw();
+}
+function resetVals(){
+  document.getElementById('ux').value=3; document.getElementById('uy').value=2;
+  document.getElementById('vx').value=1; document.getElementById('vy').value=3;
+  document.getElementById('k').value=2;  document.getElementById('kv').textContent='2';
+  draw();
+}
+function resetView(){ panX=0; panY=0; userScale=1; draw(); }
+function zoomIn(){ userScale=Math.min(userScale*1.3,8); draw(); }
+function zoomOut(){ userScale=Math.max(userScale/1.3,0.2); draw(); }
+
+const cv=document.getElementById('cv');
+cv.addEventListener('mousedown',e=>{ isDragging=true; lastMX=e.clientX; lastMY=e.clientY; cv.classList.add('panning'); });
+window.addEventListener('mousemove',e=>{ if(!isDragging)return; panX+=e.clientX-lastMX; panY+=e.clientY-lastMY; lastMX=e.clientX; lastMY=e.clientY; draw(); });
+window.addEventListener('mouseup',()=>{ isDragging=false; cv.classList.remove('panning'); });
+cv.addEventListener('wheel',e=>{ e.preventDefault(); userScale=Math.max(0.2,Math.min(8,userScale*(e.deltaY<0?1.12:0.89))); draw(); },{passive:false});
+cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ isDragging=true; lastMX=e.touches[0].clientX; lastMY=e.touches[0].clientY; } },{passive:true});
+cv.addEventListener('touchmove',e=>{ if(!isDragging||e.touches.length!==1)return; panX+=e.touches[0].clientX-lastMX; panY+=e.touches[0].clientY-lastMY; lastMX=e.touches[0].clientX; lastMY=e.touches[0].clientY; draw(); },{passive:true});
+cv.addEventListener('touchend',()=>{ isDragging=false; });
+
+function g(id){ return parseFloat(document.getElementById(id).value)||0; }
+
+function draw(){
+  const ux=g('ux'),uy=g('uy'),vx=g('vx'),vy=g('vy'),k=g('k');
+  const W=cv.clientWidth||520, H=cv.clientHeight||600;
+  cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+
+  const colGrid='rgba(7,1,87,0.055)';
+  const colAxis='rgba(7,1,87,0.18)';
+  const colTick='rgba(7,1,87,0.3)';
+
+  const pts=[Math.abs(ux),Math.abs(uy),Math.abs(vx),Math.abs(vy)];
+  const mag=Math.max(1,...pts);
+  const baseScale=Math.min((W/2-54)/mag,(H/2-54)/mag);
+  const sc=baseScale*userScale;
+  const ox=W/2+panX, oy=H/2+panY;
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle=colGrid; ctx.lineWidth=0.5;
+  for(let x=((ox%sc)+sc)%sc;x<W;x+=sc){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+  for(let y=((oy%sc)+sc)%sc;y<H;y+=sc){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+
+  // axes
+  ctx.strokeStyle=colAxis; ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+
+  // tick labels
+  ctx.fillStyle=colTick; ctx.font="12px 'Prompt',sans-serif";
+  let step=1; while(sc*step<50)step*=2;
+  ctx.textAlign='center';
+  for(let i=Math.floor(-ox/sc/step)*step;i<=Math.ceil((W-ox)/sc/step)*step;i+=step){
+    if(i===0)continue; const px=ox+i*sc; if(px>18&&px<W-18)ctx.fillText(i,px,oy+16);
+  }
+  ctx.textAlign='right';
+  for(let i=Math.floor(-oy/sc/step)*step;i<=Math.ceil((H-oy)/sc/step)*step;i+=step){
+    if(i===0)continue; const py=oy+i*sc; if(py>18&&py<H-18)ctx.fillText(-i,ox-7,py+4);
+  }
+
+  function arr(x1,y1,x2,y2,col,w=2.4,dash=[]){
+    const p1x=ox+x1*sc,p1y=oy-y1*sc,p2x=ox+x2*sc,p2y=oy-y2*sc;
+    const a=Math.atan2(p2y-p1y,p2x-p1x),hl=12,hw=5;
+    ctx.save();ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=w;ctx.setLineDash(dash);
+    ctx.beginPath();ctx.moveTo(p1x,p1y);ctx.lineTo(p2x,p2y);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(p2x,p2y);
+    ctx.lineTo(p2x-hl*Math.cos(a)+hw*Math.sin(a),p2y-hl*Math.sin(a)-hw*Math.cos(a));
+    ctx.lineTo(p2x-hl*Math.cos(a)-hw*Math.sin(a),p2y-hl*Math.sin(a)+hw*Math.cos(a));
+    ctx.closePath();ctx.fill();ctx.restore();
+  }
+
+  function lbl(x,y,t,col,bg='rgba(255,255,255,0.88)'){
+    const px=ox+x*sc, py=oy-y*sc;
+    ctx.save();ctx.font="bold 13px 'Prompt',sans-serif";
+    const m=ctx.measureText(t);
+    const bx=px+7, by=py-18;
+    ctx.fillStyle=bg;
+    ctx.beginPath();ctx.roundRect(bx-3,by-13,m.width+8,18,3);ctx.fill();
+    ctx.fillStyle=col;ctx.textAlign='left';ctx.fillText(t,bx,by);ctx.restore();
+  }
+
+  const mu=Math.sqrt(ux*ux+uy*uy), mv=Math.sqrt(vx*vx+vy*vy);
+  const dot=ux*vx+uy*vy, cross=ux*vy-uy*vx;
+  const ad=(mu>0&&mv>0)?Math.acos(Math.max(-1,Math.min(1,dot/(mu*mv))))*180/Math.PI:0;
+  document.getElementById('mu').textContent=mu.toFixed(2);
+  document.getElementById('mv').textContent=mv.toFixed(2);
+  document.getElementById('ang').textContent=ad.toFixed(1)+'°';
+
+  let html='';
+  if(op==='add'){
+    const rx=ux+vx,ry=uy+vy;
+    if(showR){ ctx.save();ctx.strokeStyle=cR;ctx.lineWidth=0.9;ctx.setLineDash([5,3]);ctx.globalAlpha=0.4;
+      ctx.beginPath();ctx.moveTo(ox+ux*sc,oy-uy*sc);ctx.lineTo(ox+rx*sc,oy-ry*sc);
+      ctx.moveTo(ox+vx*sc,oy-vy*sc);ctx.lineTo(ox+rx*sc,oy-ry*sc);ctx.stroke();ctx.restore(); }
+    if(showU){ arr(0,0,ux,uy,cU);lbl(ux,uy,'u',cU); }
+    if(showV){ arr(0,0,vx,vy,cV,2.4);lbl(vx,vy,'v','#7a5c00'); }
+    if(showR){ arr(0,0,rx,ry,cR,2.6);lbl(rx,ry,'u+v',cR); }
+    html=`<strong>u + v</strong> = (${ux}+${vx}, ${uy}+${vy}) = <strong>(${rx.toFixed(2)}, ${ry.toFixed(2)})</strong> &nbsp; ‖u+v‖ = ${Math.sqrt(rx*rx+ry*ry).toFixed(3)}`;
+  } else if(op==='sub'){
+    const rx=ux-vx,ry=uy-vy;
+    if(showU){ arr(0,0,ux,uy,cU);lbl(ux,uy,'u',cU); }
+    if(showV){ arr(0,0,vx,vy,cV,2.4);lbl(vx,vy,'v','#7a5c00'); }
+    if(showR){ arr(vx,vy,ux,uy,cR,2.4);arr(0,0,rx,ry,cR,1.2,[4,3]);lbl(rx,ry,'u−v',cR); }
+    html=`<strong>u − v</strong> = (${ux}−${vx}, ${uy}−${vy}) = <strong>(${rx.toFixed(2)}, ${ry.toFixed(2)})</strong> &nbsp; ‖u−v‖ = ${Math.sqrt(rx*rx+ry*ry).toFixed(3)}`;
+  } else if(op==='scale'){
+    const rx=k*ux,ry=k*uy;
+    if(showU){ arr(0,0,ux,uy,cU);lbl(ux,uy,'u',cU); }
+    if(showR){ arr(0,0,rx,ry,cR,2.6);lbl(rx,ry,'ku',cR); }
+    html=`<strong>k · u</strong> = ${k} × (${ux}, ${uy}) = <strong>(${rx.toFixed(2)}, ${ry.toFixed(2)})</strong>${k<0?' &nbsp; ทิศทางกลับ':''}`;
+  } else if(op==='dot'){
+    if(showU){ arr(0,0,ux,uy,cU);lbl(ux,uy,'u',cU); }
+    if(showV){ arr(0,0,vx,vy,cV,2.4);lbl(vx,vy,'v','#7a5c00'); }
+    if(showU&&showV&&mu>0&&mv>0){
+      const a1=Math.atan2(uy,ux),a2=Math.atan2(vy,vx);
+      ctx.save();ctx.strokeStyle='rgba(7,1,87,0.3)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(ox,oy,32,-a1,-a2,a1<a2);ctx.stroke();ctx.restore();
+    }
+    html=`<strong>u · v</strong> = ${ux}×${vx}+${uy}×${vy} = <strong>${dot.toFixed(3)}</strong> &nbsp; θ = ${ad.toFixed(1)}° &nbsp; ${dot>0?'มุมแหลม':dot<0?'มุมป้าน':'ตั้งฉากกัน'}`;
+  } else if(op==='cross'){
+    if(showU&&showV){ ctx.save();ctx.fillStyle=cross>0?'rgba(204,0,0,0.12)':'rgba(204,0,0,0.08)';
+      ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+ux*sc,oy-uy*sc);ctx.lineTo(ox+(ux+vx)*sc,oy-(uy+vy)*sc);ctx.lineTo(ox+vx*sc,oy-vy*sc);ctx.closePath();ctx.fill();ctx.restore(); }
+    if(showU){ arr(0,0,ux,uy,cU);lbl(ux,uy,'u',cU); }
+    if(showV){ arr(0,0,vx,vy,cV,2.4);lbl(vx,vy,'v','#7a5c00'); }
+    html=`<strong>u × v</strong> = ${ux}×${vy}−${uy}×${vx} = <strong>${cross.toFixed(3)}</strong> &nbsp; พื้นที่ = ${Math.abs(cross).toFixed(3)} &nbsp; ${cross>0?'CCW':cross<0?'CW':'เวกเตอร์ขนาน'}`;
+  } else if(op==='proj'){
+    if(mv>0){
+      const s2=dot/(mv*mv),px=s2*vx,py=s2*vy;
+      if(showU&&showR){ ctx.save();ctx.strokeStyle='rgba(7,1,87,0.25)';ctx.lineWidth=0.8;ctx.setLineDash([3,3]);
+        ctx.beginPath();ctx.moveTo(ox+ux*sc,oy-uy*sc);ctx.lineTo(ox+px*sc,oy-py*sc);ctx.stroke();ctx.restore(); }
+      if(showV){ arr(0,0,vx,vy,cV,2.4);lbl(vx,vy,'v','#7a5c00'); }
+      if(showU){ arr(0,0,ux,uy,cU);lbl(ux,uy,'u',cU); }
+      if(showR){ arr(0,0,px,py,cR,2.6);lbl(px,py,'proj',cR); }
+      html=`<strong>proj<sub>v</sub> u</strong> = (${dot.toFixed(2)} / ${(mv*mv).toFixed(2)}) · (${vx}, ${vy}) = <strong>(${px.toFixed(3)}, ${py.toFixed(3)})</strong>`;
+    } else {
+      if(showU){ arr(0,0,ux,uy,cU); }
+      html='v = (0, 0) — ไม่สามารถ projection ได้';
+    }
+  }
+  document.getElementById('res').innerHTML=html;
+}
+
+const ro=new ResizeObserver(()=>{ requestAnimationFrame(draw); });
+ro.observe(cv);
+draw();
+</script>
+</body>
+</html>
